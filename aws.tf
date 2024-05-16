@@ -7,28 +7,33 @@ terraform {
   }
 }
 
-# Configure the AWS Provider
+# Configure o provedor AWS
 provider "aws" {
   region = "us-east-1"
 }
 
-# Create a VPC
+# Crie uma VPC
 resource "aws_vpc" "example" {
   cidr_block = "10.0.0.0/16"
 }
 
+# Crie um cluster do ECS
 resource "aws_ecs_cluster" "example_cluster" {
   name = "xirimbaugos"
 }
 
+# Crie uma definição de tarefa do ECS
 resource "aws_ecs_task_definition" "example_task_definition" {
   family                   = "growthsuplements"
   network_mode             = "awsvpc"
 
+  cpu                      = "256"  # Adicione a configuração de CPU para Fargate
+  memory                   = "512"  # Adicione a configuração de memória para Fargate
+
   container_definitions = jsonencode([
     {
       "name": "cesinha",
-      "image": "klockrc/dev-ops-29-02-2024-rg:tagname",
+      "image": "klockrc/nakassite:toplingo",
       "cpu": 256,
       "memory": 512,
       "portMappings": [
@@ -45,19 +50,21 @@ resource "aws_ecs_task_definition" "example_task_definition" {
   ])
 }
 
+# Crie um serviço do ECS
 resource "aws_ecs_service" "example_service" {
   name            = "cesazika"
   cluster         = aws_ecs_cluster.example_cluster.id
   task_definition = aws_ecs_task_definition.example_task_definition.arn
   desired_count   = 1
 
+  launch_type     = "FARGATE"  # Especifique o tipo de lançamento como Fargate
+
   network_configuration {
     subnets         = ["subnet-0af92731be6ba7875"]
     security_groups = ["sg-0eaefbc0185d0a1f9"]
-#    assign_public_ip = true
+    assign_public_ip = true  # Atribua um IP público para as tarefas do Fargate
   }
 }
-
 
 # Criação de uma instância RDS MySQL
 resource "aws_db_instance" "example_db_instance" {
