@@ -38,6 +38,20 @@ resource "aws_security_group" "example_db_security_group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+ ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -101,6 +115,46 @@ resource "aws_ecs_service" "example_service" {
   name            = "ceasar"
   cluster         = aws_ecs_cluster.example_cluster.id
   task_definition = aws_ecs_task_definition.example_task_definition.arn
+  desired_count   = 1
+
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets         = ["subnet-04894801b78b506d2", "subnet-05c1ce333c4a6494a"]
+    security_groups = [aws_security_group.example_db_security_group.id]
+    assign_public_ip = true
+  }
+}
+
+# ECS Task Definition for Adminer
+resource "aws_ecs_task_definition" "adminer_task_definition" {
+  family                   = "adminer"
+  network_mode             = "awsvpc"
+
+  cpu                      = "256"
+  memory                   = "512"
+
+  container_definitions = jsonencode([
+    {
+      "name": "adminer",
+      "image": "adminer",
+      "cpu": 256,
+      "memory": 512,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080
+        }
+      ]
+    }
+  ])
+}
+
+# ECS Service for Adminer
+resource "aws_ecs_service" "adminer_service" {
+  name            = "adminer"
+  cluster         = aws_ecs_cluster.example_cluster.id
+  task_definition = aws_ecs_task_definition.adminer_task_definition.arn
   desired_count   = 1
 
   launch_type     = "FARGATE"
